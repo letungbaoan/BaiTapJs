@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen flex flex-col items-center p-6">
+    <h1 class="text-2xl font-bold mb-4">Student Management</h1>
+
+    <form
+      id="studentForm"
+      class="bg-white p-6 rounded shadow-md w-full max-w-md space-y-4"
+    >
+      <div>
+        <label class="block font-semibold">ID</label>
+        <input id="id" type="text" class="w-full border p-2 rounded" required />
+      </div>
+      <div>
+        <label class="block font-semibold">Name</label>
+        <input
+          id="name"
+          type="text"
+          class="w-full border p-2 rounded"
+          required
+        />
+      </div>
+      <div>
+        <label class="block font-semibold">Birthday</label>
+        <input
+          id="birthday"
+          type="date"
+          class="w-full border p-2 rounded"
+          required
+        />
+      </div>
+      <div>
+        <label class="block font-semibold">Phone Number</label>
+        <input
+          id="phoneNumber"
+          type="text"
+          class="w-full border p-2 rounded"
+          required
+        />
+      </div>
+      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">
+        Submit
+      </button>
+      <p id="error" class="text-red-500 text-sm mt-2"></p>
+    </form>
+
+    <div class="mt-6 w-full max-w-2xl">
+      <table class="table-auto w-full border-collapse border border-gray-400">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border border-gray-400 px-4 py-2">ID</th>
+            <th class="border border-gray-400 px-4 py-2">Name</th>
+            <th class="border border-gray-400 px-4 py-2">Birthday</th>
+            <th class="border border-gray-400 px-4 py-2">Phone Number</th>
+          </tr>
+        </thead>
+        <tbody id="studentTable"></tbody>
+      </table>
+    </div>
+
+    <script>
+      const form = document.getElementById("studentForm");
+      const errorEl = document.getElementById("error");
+      const tableBody = document.getElementById("studentTable");
+
+      let students = JSON.parse(localStorage.getItem("students")) || [];
+      renderTable();
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorEl.textContent = "";
+
+        const id = document.getElementById("id").value.trim();
+        const name = document.getElementById("name").value.trim();
+        const birthday = document.getElementById("birthday").value;
+        const phoneNumber = document.getElementById("phoneNumber").value.trim();
+
+        // Validate
+        if (!id) return showError("ID is required");
+        if (!name || name.length < 5 || name.length > 15)
+          return showError("Name must be 5-15 characters");
+        if (!birthday) return showError("Birthday is required");
+        if (calculateAge(new Date(birthday)) < 18)
+          return showError("Student must be older than 18");
+        if (!phoneNumber || phoneNumber.length !== 10)
+          return showError("Phone number must be exactly 10 digits");
+
+        const index = students.findIndex((s) => s.id === id);
+        if (index !== -1) {
+          students[index] = { id, name, birthday, phoneNumber };
+        } else {
+          students.push({ id, name, birthday, phoneNumber });
+        }
+
+        localStorage.setItem("students", JSON.stringify(students));
+        renderTable();
+        form.reset();
+      });
+
+      function showError(msg) {
+        errorEl.textContent = msg;
+      }
+
+      function calculateAge(birthday) {
+        const diff = Date.now() - birthday.getTime();
+        const ageDate = new Date(diff);
+        return Math.abs(ageDate.getUTCFullYear() - 1970);
+      }
+
+      function renderTable() {
+        tableBody.innerHTML = "";
+        students.forEach((s) => {
+          const row = `<tr>
+          <td class="border px-4 py-2">${s.id}</td>
+          <td class="border px-4 py-2">${s.name}</td>
+          <td class="border px-4 py-2">${s.birthday}</td>
+          <td class="border px-4 py-2">${s.phoneNumber}</td>
+        </tr>`;
+          tableBody.innerHTML += row;
+        });
+      }
+    </script>
+  </body>
+</html>

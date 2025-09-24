@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculator (fixed screen width)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .btn {
+        @apply bg-white shadow-md rounded-xl p-4 text-lg font-bold hover:bg-gray-200;
+      }
+      .btn:active {
+        @apply bg-gray-300;
+      }
+      .flash {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.45);
+      }
+    </style>
+  </head>
+  <body class="flex items-center justify-center h-screen bg-gray-100">
+    <div class="bg-gray-200 p-4 rounded-2xl shadow-xl">
+      <div
+        id="screen"
+        class="bg-black text-white text-right p-4 rounded-lg text-2xl mb-4 overflow-hidden whitespace-nowrap w-72"
+        style="
+          font-family: system-ui, -apple-system, 'Segoe UI', Roboto,
+            'Helvetica Neue', Arial;
+        "
+      >
+        0
+      </div>
+
+      <div class="grid grid-cols-4 gap-3">
+        <button class="btn">7</button>
+        <button class="btn">8</button>
+        <button class="btn">9</button>
+        <button class="btn">+</button>
+
+        <button class="btn">4</button>
+        <button class="btn">5</button>
+        <button class="btn">6</button>
+        <button class="btn">*</button>
+
+        <button class="btn">1</button>
+        <button class="btn">2</button>
+        <button class="btn">3</button>
+        <button class="btn">-</button>
+
+        <button class="btn">.</button>
+        <button class="btn">0</button>
+        <button class="btn">exp</button>
+        <button class="btn">/</button>
+
+        <button class="btn">%</button>
+        <button class="btn">=</button>
+        <button class="btn">del</button>
+        <button class="btn">C</button>
+      </div>
+    </div>
+
+    <script>
+      const screen = document.getElementById("screen");
+      const buttons = document.querySelectorAll(".btn");
+
+      const canvasCtx = document.createElement("canvas").getContext("2d");
+
+      function getAvailableWidth() {
+        const style = getComputedStyle(screen);
+        const paddingLR =
+          parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+        return screen.clientWidth - paddingLR;
+      }
+
+      function setCanvasFont() {
+        const s = getComputedStyle(screen);
+        canvasCtx.font =
+          s.font || `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
+      }
+
+      function measureTextWidth(text) {
+        setCanvasFont();
+        return canvasCtx.measureText(text).width;
+      }
+
+      function canFit(nextStr) {
+        const avail = getAvailableWidth();
+        const w = measureTextWidth(nextStr || "0");
+        return w <= avail;
+      }
+
+      function flashOverflow() {
+        screen.classList.add("flash");
+        setTimeout(() => screen.classList.remove("flash"), 250);
+      }
+
+      let current = "";
+
+      function fitResultOrOverflow(str) {
+        if (canFit(str)) return str;
+        const num = Number(str);
+        if (Number.isFinite(num)) {
+          const exp = num.toExponential(6);
+          if (canFit(exp)) return exp;
+        }
+        return "Overflow";
+      }
+
+      buttons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const val = btn.textContent;
+          if (val === "C") {
+            current = "";
+          } else if (val === "del") {
+            current = current.slice(0, -1);
+          } else if (val === "=") {
+            try {
+              const expression = current.replace(/\^/g, "**");
+              const result = eval(expression);
+              current = fitResultOrOverflow(String(result));
+            } catch {
+              current = "Error";
+            }
+          } else if (val === "%") {
+            try {
+              const expression = current.replace(/\^/g, "**");
+              const result = eval(expression);
+              const percentStr = String(result * 100) + "%";
+              if (canFit(percentStr)) {
+                current = percentStr;
+              } else {
+                const num = Number(result * 100);
+                if (Number.isFinite(num)) {
+                  const exp = num.toExponential(6) + "%";
+                  if (canFit(exp)) current = exp;
+                  else current = "Overflow";
+                } else current = "Error";
+              }
+            } catch {
+              current = "Error";
+            }
+          } else if (val === "exp") {
+            const next = current + "^";
+            if (canFit(next)) current = next;
+            else flashOverflow();
+          } else if (val === ".") {
+            const lastCharIsOp =
+              /[\+\-\*\/\^]$/.test(current) || current === "";
+            const next = lastCharIsOp ? current + "0." : current + ".";
+            if (canFit(next)) current = next;
+            else flashOverflow();
+          } else {
+            const next = current + val;
+            if (canFit(next)) current = next;
+            else flashOverflow();
+          }
+
+          screen.textContent = current || "0";
+        });
+      });
+
+      window.addEventListener("resize", () => {
+        if (!canFit(current)) {
+          if (!isNaN(Number(current))) current = fitResultOrOverflow(current);
+          else {
+            while (current && !canFit(current)) current = current.slice(1);
+            if (!current) current = "0";
+          }
+          screen.textContent = current || "0";
+        }
+      });
+    </script>
+  </body>
+</html>
